@@ -117,6 +117,8 @@ export function createGame(
       round: 1,
       timer: null,
       lastEjectedId: null,
+      pendingGuessId: null,
+      stolenById: null,
       winner: null,
     },
   };
@@ -139,12 +141,26 @@ export type Action =
   | { type: 'openVote' }
   | { type: 'backToDiscuss' }
   | { type: 'vote'; id: string }
+  | { type: 'lastGuess'; correct: boolean; now: number }
   | { type: 'continue'; now: number }
   | { type: 'playAgain'; now: number }
   | { type: 'endGame' };
 
 export function cleanName(name: string): string {
   return name.replace(/\s+/g, ' ').trim().slice(0, MAX_NAME_LENGTH);
+}
+
+function nextRound(state: AppState, game: Game, now: number, rng: Rng): AppState {
+  return {
+    ...state,
+    phase: 'discuss',
+    game: {
+      ...game,
+      round: game.round + 1,
+      starterId: pickStarter(game.players, rng),
+      timer: newTimer(state.settings.timerSec, now),
+    },
+  };
 }
 
 export function reducer(state: AppState, action: Action, rng: Rng = Math.random): AppState {
@@ -252,23 +268,35 @@ export function reducer(state: AppState, action: Action, rng: Rng = Math.random)
       return {
         ...state,
         phase: 'verdict',
-        game: { ...game, players, lastEjectedId: action.id, winner: checkWinner(players) },
+        game: {
+          ...game,
+          players,
+          lastEjectedId: action.id,
+          pendingGuessId: target.role === 'imposter' ? target.id : null,
+          winner: checkWinner(players),
+        },
       };
     }
 
     case 'continue': {
       if (!game || state.phase !== 'verdict') return state;
+      if (game.pendingGuessId) return { ...state, phase: 'guess' };
       if (game.winner) return { ...state, phase: 'over' };
-      return {
-        ...state,
-        phase: 'discuss',
-        game: {
-          ...game,
-          round: game.round + 1,
-          starterId: pickStarter(game.players, rng),
-          timer: newTimer(settings.timerSec, action.now),
-        },
-      };
+      return nextRound(state, game, action.now, rng);
+    }
+
+    case 'lastGuess': {
+      if (!game || state.phase !== 'guess' || !game.pendingGuessId) return state;
+      if (action.correct) {
+        return {
+          ...state,
+          phase: 'over',
+          game: { ...game, winner: 'imposter', stolenById: game.pendingGuessId, pendingGuessId: null },
+        };
+      }
+      const resolved = { ...game, pendingGuessId: null };
+      if (resolved.winner) return { ...state, phase: 'over', game: resolved };
+      return nextRound(state, resolved, action.now, rng);
     }
 
     case 'endGame':

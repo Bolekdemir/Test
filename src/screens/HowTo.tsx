@@ -36,6 +36,12 @@ export function HowTo({ dispatch }: { dispatch: (a: Action) => void }) {
           </li>
           <li>
             <span>
+              <strong>Last chance.</strong> A caught imposter gets one guess at the word, out loud. Guess it and the
+              imposters win.
+            </span>
+          </li>
+          <li>
+            <span>
               <strong>Win.</strong> The crew wins by catching every imposter. Imposters win once they match the crew in
               number.
             </span>

@@ -10,13 +10,13 @@ import { Home } from './screens/Home';
 import { HowTo } from './screens/HowTo';
 import { Pass, Peek } from './screens/PassPeek';
 import { Setup } from './screens/Setup';
-import { Over, Verdict } from './screens/Verdict';
+import { LastChance, Over, Verdict } from './screens/Verdict';
 import { Vote } from './screens/Vote';
 import { loadState, saveState } from './storage';
 
-const IN_GAME: Phase[] = ['pass', 'peek', 'discuss', 'vote', 'verdict', 'over'];
+const IN_GAME: Phase[] = ['pass', 'peek', 'discuss', 'vote', 'verdict', 'guess', 'over'];
 /** Transitions that read as going back, so the screen slides the other way. */
-const BACKWARD = new Set(['setup>home', 'howto>home', 'vote>discuss', 'over>setup', 'pass>setup', 'peek>setup', 'discuss>setup', 'vote>setup', 'verdict>setup']);
+const BACKWARD = new Set(['setup>home', 'howto>home', 'vote>discuss', 'over>setup', 'pass>setup', 'peek>setup', 'discuss>setup', 'vote>setup', 'verdict>setup', 'guess>setup']);
 
 const LABELS: Record<Phase, string> = {
   home: 'Home',
@@ -27,6 +27,7 @@ const LABELS: Record<Phase, string> = {
   discuss: 'Discussion',
   vote: 'Vote',
   verdict: 'Verdict',
+  guess: 'Last chance',
   over: 'Game over',
 };
 
@@ -50,14 +51,14 @@ export function App() {
   useWakeLock(IN_GAME.includes(phase));
 
   useEffect(() => {
-    if (phase !== 'verdict' && phase !== 'over') setFlood(null);
+    if (phase !== 'verdict' && phase !== 'guess' && phase !== 'over') setFlood(null);
   }, [phase]);
 
   const endGame = useCallback(() => dispatch({ type: 'endGame' }), [dispatch]);
   const resume = useCallback(() => {
     setState((s) => {
       if (!s.game) return s;
-      const phase: Phase = s.game.winner ? 'over' : s.game.revealIndex < s.game.players.length ? 'pass' : 'discuss';
+      const phase: Phase = s.game.pendingGuessId ? 'guess' : s.game.winner ? 'over' : s.game.revealIndex < s.game.players.length ? 'pass' : 'discuss';
       return { ...s, phase };
     });
   }, []);
@@ -77,6 +78,7 @@ export function App() {
     } else if (phase === 'discuss') content = <Discuss game={game} dispatch={dispatch} onEnd={endGame} />;
     else if (phase === 'vote') content = <Vote game={game} dispatch={dispatch} />;
     else if (phase === 'verdict') content = <Verdict game={game} dispatch={dispatch} setFlood={setFlood} />;
+    else if (phase === 'guess') content = <LastChance game={game} dispatch={dispatch} />;
     else if (phase === 'over') content = <Over game={game} dispatch={dispatch} setFlood={setFlood} />;
   }
 

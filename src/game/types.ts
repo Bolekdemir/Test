@@ -35,6 +35,7 @@ export type Phase =
   | 'discuss'
   | 'vote'
   | 'verdict'
+  | 'guess'
   | 'over';
 
 export interface Game {
@@ -48,6 +49,10 @@ export interface Game {
   round: number;
   timer: Timer | null;
   lastEjectedId: string | null;
+  /** Caught imposter who still gets one guess at the word before the result stands. */
+  pendingGuessId?: string | null;
+  /** Imposter whose correct last-chance guess won the game. */
+  stolenById?: string | null;
   winner: Role | null;
 }
 

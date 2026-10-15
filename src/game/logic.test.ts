@@ -127,15 +127,44 @@ describe('full game flow', () => {
     s = run(s, [{ type: 'openVote' }, { type: 'vote', id: imposters[0].id }]);
     expect(s.phase).toBe('verdict');
     expect(s.game!.winner).toBeNull();
+    expect(s.game!.pendingGuessId).toBe(imposters[0].id);
 
     s = run(s, [{ type: 'continue', now: 0 }]);
+    expect(s.phase).toBe('guess');
+    s = run(s, [{ type: 'lastGuess', correct: false, now: 0 }]);
     expect(s.phase).toBe('discuss');
     expect(s.game!.round).toBe(2);
     expect(turnOrder(s.game!).some((p) => p.id === imposters[0].id)).toBe(false);
 
-    s = run(s, [{ type: 'openVote' }, { type: 'vote', id: imposters[1].id }, { type: 'continue', now: 0 }]);
+    s = run(s, [
+      { type: 'openVote' },
+      { type: 'vote', id: imposters[1].id },
+      { type: 'continue', now: 0 },
+      { type: 'lastGuess', correct: false, now: 0 },
+    ]);
     expect(s.phase).toBe('over');
     expect(s.game!.winner).toBe('crew');
+  });
+
+  it('lets a caught imposter steal the win by guessing the word', () => {
+    let s = run(withPlayers(1), [{ type: 'start', now: 0 }]);
+    for (let i = 0; i < players.length; i++) s = run(s, [{ type: 'ready' }, { type: 'donePeeking', now: 0 }]);
+    const imposter = s.game!.players.find((p) => p.role === 'imposter')!;
+    s = run(s, [{ type: 'openVote' }, { type: 'vote', id: imposter.id }]);
+    expect(s.game!.winner).toBe('crew');
+    s = run(s, [{ type: 'continue', now: 0 }, { type: 'lastGuess', correct: true, now: 0 }]);
+    expect(s.phase).toBe('over');
+    expect(s.game!.winner).toBe('imposter');
+    expect(s.game!.stolenById).toBe(imposter.id);
+  });
+
+  it('gives no guess when the crew votes out one of their own', () => {
+    let s = run(withPlayers(1), [{ type: 'start', now: 0 }]);
+    for (let i = 0; i < players.length; i++) s = run(s, [{ type: 'ready' }, { type: 'donePeeking', now: 0 }]);
+    const crew = s.game!.players.find((p) => p.role === 'crew')!;
+    s = run(s, [{ type: 'openVote' }, { type: 'vote', id: crew.id }, { type: 'continue', now: 0 }]);
+    expect(s.game!.pendingGuessId).toBeNull();
+    expect(s.phase).toBe('discuss');
   });
 
   it('ends with an imposter win when crew gets voted out', () => {
