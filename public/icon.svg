@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#3f4d3b"/>
+      <stop offset="1" stop-color="#26301f"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="#f4f1ea"/>
+  <rect x="136" y="72" width="240" height="336" rx="40" fill="url(#g)" transform="rotate(-8 256 256)"/>
+  <text x="256" y="300" text-anchor="middle" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="120" font-weight="800" letter-spacing="-6" fill="#d2e0dc" transform="rotate(-8 256 256)">M</text>
+</svg>

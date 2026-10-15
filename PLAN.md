@@ -7,10 +7,14 @@ A pass-and-play party game for one iPad. Everyone except the imposter(s) knows t
 | Topic | Decision |
 |---|---|
 | Play mode | Pass-and-play on one device (no online multiplayer in v1) |
-| Imposter info | Knows nothing — no word, no category |
-| Imposter last guess | None — getting voted out ends that imposter |
+| Imposter info | Knows nothing: no word, no category |
+| Imposter last guess | None: getting voted out ends that imposter |
 | Language | English only |
-| Platform | Installable web app (PWA), iPad-first, works offline |
+| Platform | Installable web app (PWA), iPad-first |
+| Name | Mert |
+| Timer | One countdown for the whole discussion; vote any time |
+| Topics | 26 topics, pick several or mix everything |
+| Look | Apple-like, sage palette + cream + white (see DESIGN.md) |
 
 ## Game flow
 
@@ -115,7 +119,7 @@ Rules for words: concrete, widely known, one or two words, not too close to anot
 
 ## Milestones
 
-1. **Playable core** — setup, pass/reveal, rounds (no timer), vote, result, game over, one category. Logic unit tested.
+1. ✅ **Playable core** (done) — setup, pass/reveal, rounds (no timer), vote, result, game over, one category. Logic unit tested.
    *Done when:* a full 5-player, 2-imposter game can be played start to finish on an iPad.
 2. **Content & polish** — all categories, category picker, timer, resume-after-refresh, wake lock, animations, How to play.
 3. **Ship it** — PWA install + offline, icons, deploy to free hosting, iPad e2e test.
