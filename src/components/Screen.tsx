@@ -19,9 +19,11 @@ export function Screen({ children, className = '', dir, label }: Props) {
       aria-label={label}
       custom={dir}
       variants={{
-        enter: (d: number) => ({ opacity: 0, transform: `translateX(${d * shift}px)` }),
-        center: { opacity: 1, transform: 'translateX(0px)' },
-        exit: (d: number) => ({ opacity: 0, transform: `translateX(${-d * shift}px)` }),
+        // Motion's x clears to `transform: none` at rest. A leftover transform would turn the
+        // screen into the containing block for fixed children, so docks would scroll away.
+        enter: (d: number) => ({ opacity: 0, x: d * shift }),
+        center: { opacity: 1, x: 0 },
+        exit: (d: number) => ({ opacity: 0, x: -d * shift }),
       }}
       initial="enter"
       animate="center"
