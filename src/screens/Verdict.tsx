@@ -10,7 +10,31 @@ import { spring } from '../motion';
 
 const SUSPENSE_MS = 1500;
 
-export function Verdict({ game, dispatch, setFlood }: { game: Game; dispatch: (a: Action) => void; setFlood: (t: FloodTone | null) => void }) {
+/** A second tied vote: nobody goes out and the game moves on. */
+function NoEjection({ game, dispatch }: { game: Game; dispatch: (a: Action) => void }) {
+  const left = game.players.filter((p) => p.alive && p.role === 'imposter').length;
+  return (
+    <div className="screen--center" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="verdict">
+        <p className="verdict__lead">Tied again.</p>
+        <h1 className="display verdict__big">Nobody goes out.</h1>
+        <p className="verdict__note">
+          The {left === 1 ? 'imposter is' : 'imposters are'} still among you.
+        </p>
+        <button type="button" className="btn btn--primary btn--lg" onClick={() => dispatch({ type: 'continue', now: Date.now() })}>
+          Next round <ArrowRight size={20} weight="bold" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function Verdict(props: { game: Game; dispatch: (a: Action) => void; setFlood: (t: FloodTone | null) => void }) {
+  if (!props.game.lastEjectedId) return <NoEjection game={props.game} dispatch={props.dispatch} />;
+  return <Ejection {...props} />;
+}
+
+function Ejection({ game, dispatch, setFlood }: { game: Game; dispatch: (a: Action) => void; setFlood: (t: FloodTone | null) => void }) {
   const reduce = useReducedMotion();
   const [revealed, setRevealed] = useState(false);
   const ejected = game.players.find((p) => p.id === game.lastEjectedId)!;

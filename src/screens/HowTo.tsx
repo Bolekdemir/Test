@@ -15,6 +15,8 @@ export function HowTo({ dispatch }: { dispatch: (a: Action) => void }) {
           <li>
             <span>
               <strong>Set up.</strong> Add everyone playing, pick some topics and choose how many imposters there are.
+              Choose <strong>With phones</strong> and everyone can scan the code to get their card and vote on their own
+              phone.
             </span>
           </li>
           <li>

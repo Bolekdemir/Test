@@ -1,7 +1,8 @@
-import { CaretLeft, Check, Plus, X } from '@phosphor-icons/react';
+import { CaretLeft, Check, DeviceMobile, Plus, X } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Avatar } from '../components/Avatar';
+import { RoomCard } from '../components/RoomCard';
 import { Segmented } from '../components/Segmented';
 import { Stepper } from '../components/Stepper';
 import { TopicIcon } from '../components/TopicIcon';
@@ -9,6 +10,7 @@ import { ALL_TOPIC_IDS, TOPICS } from '../data/topics';
 import { MAX_NAME_LENGTH, MAX_PLAYERS, MIN_PLAYERS, canStart, maxImposters, type Action } from '../game/logic';
 import type { Player, Settings } from '../game/types';
 import { spring } from '../motion';
+import type { HostStatus } from '../net/useRoomHost';
 
 const TIMER_OPTIONS: { value: number | null; label: string }[] = [
   { value: null, label: 'Off' },
@@ -23,8 +25,9 @@ function newId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function PlayerRow({ player, dispatch }: { player: Player; dispatch: (a: Action) => void }) {
+function PlayerRow({ player, dispatch, online }: { player: Player; dispatch: (a: Action) => void; online: boolean }) {
   const [draft, setDraft] = useState(player.name);
+  useEffect(() => setDraft(player.name), [player.name]);
   const commit = () => {
     if (draft.trim()) dispatch({ type: 'renamePlayer', id: player.id, name: draft });
     else setDraft(player.name);
@@ -45,6 +48,16 @@ function PlayerRow({ player, dispatch }: { player: Player; dispatch: (a: Action)
         autoCorrect="off"
         spellCheck={false}
       />
+      {player.deviceId && (
+        <span
+          className="player__phone"
+          data-online={online}
+          title={online ? 'Connected phone' : 'Phone offline'}
+          aria-label={online ? 'Connected phone' : 'Phone offline'}
+        >
+          <DeviceMobile size={20} weight={online ? 'fill' : 'regular'} />
+        </span>
+      )}
       <button
         type="button"
         className="icon-btn icon-btn--plain"
@@ -57,7 +70,19 @@ function PlayerRow({ player, dispatch }: { player: Player; dispatch: (a: Action)
   );
 }
 
-export function Setup({ settings, dispatch }: { settings: Settings; dispatch: (a: Action) => void }) {
+const MODE_OPTIONS: { value: 'ipad' | 'phones'; label: string }[] = [
+  { value: 'ipad', label: 'One iPad' },
+  { value: 'phones', label: 'With phones' },
+];
+
+interface Props {
+  settings: Settings;
+  dispatch: (a: Action) => void;
+  online: Set<string>;
+  hostStatus: HostStatus;
+}
+
+export function Setup({ settings, dispatch, online, hostStatus }: Props) {
   const [name, setName] = useState('');
   const reduce = useReducedMotion();
   const { players, topicIds, imposters, timerSec } = settings;
@@ -104,6 +129,28 @@ export function Setup({ settings, dispatch }: { settings: Settings; dispatch: (a
 
       <div className="setup">
         <div className="setup__side">
+        <section className="surface" aria-labelledby="mode-h">
+          <div className="panel__head">
+            <h2 className="heading" id="mode-h">
+              How you’re playing
+            </h2>
+          </div>
+          <Segmented
+            label="How you’re playing"
+            options={MODE_OPTIONS}
+            value={settings.phones ? 'phones' : 'ipad'}
+            onChange={(v) => dispatch({ type: 'setPhones', on: v === 'phones' })}
+          />
+          <p className="panel__hint" style={{ margin: '14px 4px 0' }}>
+            {settings.phones
+              ? 'Everyone sees their card and votes on their own phone. No phone? Add their name below.'
+              : 'Pass the iPad around to see your card. Vote together out loud.'}
+          </p>
+          {settings.phones && settings.room && (
+            <RoomCard room={settings.room} status={hostStatus} count={online.size} />
+          )}
+        </section>
+
         <section className="surface setup__players" aria-labelledby="players-h">
           <div className="panel__head">
             <h2 className="heading" id="players-h">
@@ -116,7 +163,7 @@ export function Setup({ settings, dispatch }: { settings: Settings; dispatch: (a
           <form className="add-row" onSubmit={add}>
             <input
               className="field"
-              placeholder={full ? 'That’s everyone' : 'Add a name'}
+              placeholder={full ? 'That’s everyone' : settings.phones ? 'Add someone without a phone' : 'Add a name'}
               value={name}
               maxLength={MAX_NAME_LENGTH}
               disabled={full}
@@ -133,13 +180,17 @@ export function Setup({ settings, dispatch }: { settings: Settings; dispatch: (a
             </button>
           </form>
           {players.length === 0 ? (
-            <p className="empty">Add at least {MIN_PLAYERS} players. Tap a name later to fix a typo.</p>
+            <p className="empty">
+              {settings.phones
+                ? `Waiting for phones to join. You need at least ${MIN_PLAYERS} players.`
+                : `Add at least ${MIN_PLAYERS} players. Tap a name later to fix a typo.`}
+            </p>
           ) : (
             <motion.ul className="players" layout transition={spring}>
               <AnimatePresence initial={false} mode="popLayout">
                 {players.map((p) => (
                   <motion.li key={p.id} className="player" layout {...rowMotion} transition={spring}>
-                    <PlayerRow player={p} dispatch={dispatch} />
+                    <PlayerRow player={p} dispatch={dispatch} online={!!p.deviceId && online.has(p.deviceId)} />
                   </motion.li>
                 ))}
               </AnimatePresence>

@@ -4,24 +4,25 @@ import { App } from './App';
 import './styles.css';
 
 const ConnectTest = lazy(() => import('./lab/ConnectTest'));
+const PhoneApp = lazy(() => import('./phone/PhoneApp'));
 
-function isConnectTest() {
-  return location.hash.startsWith('#/connect');
+type Route = 'app' | 'connect' | 'join';
+
+function route(): Route {
+  if (location.hash.startsWith('#/connect')) return 'connect';
+  if (location.hash.startsWith('#/join')) return 'join';
+  return 'app';
 }
 
 function Root() {
-  const [lab, setLab] = useState(isConnectTest);
+  const [r, setR] = useState(route);
   useEffect(() => {
-    const onHash = () => setLab(isConnectTest());
+    const onHash = () => setR(route());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
-  if (!lab) return <App />;
-  return (
-    <Suspense fallback={null}>
-      <ConnectTest />
-    </Suspense>
-  );
+  if (r === 'app') return <App />;
+  return <Suspense fallback={null}>{r === 'join' ? <PhoneApp /> : <ConnectTest />}</Suspense>;
 }
 
 createRoot(document.getElementById('root')!).render(

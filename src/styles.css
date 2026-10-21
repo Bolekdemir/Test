@@ -1346,3 +1346,257 @@ button {
     animation: none;
   }
 }
+
+/* ---------- Rooms (play with phones) ---------- */
+
+.room {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: var(--radius-tile);
+  background: var(--surface-sunk);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.room__qr {
+  width: 132px;
+  height: 132px;
+  flex: none;
+  border-radius: 14px;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.room__qr img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.room__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.room__code {
+  font-size: 48px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  line-height: 1.05;
+  color: var(--accent);
+}
+
+.room__note {
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.room__note--error {
+  color: var(--terracotta);
+}
+
+.player__phone {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  color: var(--ink-3);
+  transition: color 300ms ease;
+}
+
+.player__phone[data-online='true'] {
+  color: var(--sage);
+}
+
+.voter__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--ink-3);
+}
+
+.voter__status[data-tone='done'] {
+  color: var(--sage);
+}
+
+.voter__status[data-tone='warn'] {
+  color: var(--honey);
+}
+
+div.voter {
+  cursor: default;
+}
+
+div.voter[data-done='true'] {
+  background: var(--select);
+  box-shadow: inset 0 0 0 1px var(--select-line);
+}
+
+.ballot {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: #1b2318;
+  color: #eef1ea;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: max(env(safe-area-inset-top), 20px) max(env(safe-area-inset-right), var(--gutter))
+    max(env(safe-area-inset-bottom), 24px) max(env(safe-area-inset-left), var(--gutter));
+}
+
+.voter--dark {
+  background: rgba(238, 241, 234, 0.06);
+  color: #eef1ea;
+  box-shadow: inset 0 0 0 1px rgba(238, 241, 234, 0.1);
+}
+
+.voter--dark[aria-checked='true'] {
+  background: rgba(210, 224, 220, 0.18);
+  box-shadow: inset 0 0 0 2px #a9bcb3;
+}
+
+.dock--dark {
+  background: color-mix(in srgb, #1b2318 72%, transparent);
+}
+
+/* ---------- Phone app ---------- */
+
+.phone {
+  color: #eef1ea;
+}
+
+.phone .title,
+.phone .display {
+  color: #eef1ea;
+}
+
+.phone__join {
+  width: 100%;
+  max-width: 420px;
+  margin: auto;
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone__mark {
+  font-size: 96px;
+  color: #d2e0dc;
+  margin-left: -0.04em;
+}
+
+.phone__lede {
+  font-size: 18px;
+  line-height: 1.4;
+  color: rgba(238, 241, 234, 0.74);
+  margin: 10px 0 0;
+  text-wrap: balance;
+}
+
+.phone__label {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(238, 241, 234, 0.66);
+  margin: 24px 0 8px 6px;
+}
+
+.field--dark {
+  background: rgba(238, 241, 234, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(238, 241, 234, 0.12);
+  color: #eef1ea;
+  font-size: 19px;
+  height: 56px;
+  flex: none;
+}
+
+.field--dark::placeholder {
+  color: rgba(238, 241, 234, 0.45);
+}
+
+.field--dark:focus {
+  box-shadow: inset 0 0 0 2px #a9bcb3;
+}
+
+.phone__error {
+  color: #f0a58f;
+  font-weight: 550;
+  margin: 16px 6px 0;
+}
+
+.phone__center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+  padding-bottom: 24px;
+}
+
+.phone__name {
+  font-size: clamp(48px, 15vw, 88px);
+  color: #d2e0dc;
+  overflow-wrap: anywhere;
+}
+
+.phone__ballot {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 8px 0 24px;
+  text-align: center;
+}
+
+.phone .chip {
+  color: #eef1ea;
+  padding: 0 16px;
+}
+
+.phone .peek__slot {
+  width: min(320px, 78vw, calc((100dvh - 260px) * 5 / 7));
+  margin: 8px 0 16px;
+}
+
+.phone__banner {
+  position: fixed;
+  top: max(env(safe-area-inset-top), 12px);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: fit-content;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  background: rgba(238, 241, 234, 0.92);
+  color: #1b2318;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 10px 28px -12px rgba(0, 0, 0, 0.5);
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
