@@ -1,4 +1,4 @@
-import { ArrowRight, Question } from '@phosphor-icons/react';
+import { ArrowRight, DeviceMobile, Question } from '@phosphor-icons/react';
 import { motion, useReducedMotion } from 'motion/react';
 import type { Action } from '../game/logic';
 import { springMomentum } from '../motion';
@@ -29,6 +29,11 @@ export function Home({ dispatch, hasGame, onResume }: { dispatch: (a: Action) =>
           )}
           <button type="button" className="btn btn--ghost btn--lg" onClick={() => dispatch({ type: 'go', phase: 'howto' })}>
             <Question size={22} /> How to play
+          </button>
+        </div>
+        <div className="home__join">
+          <button type="button" className="btn btn--ghost" onClick={() => (location.hash = '#/join')}>
+            <DeviceMobile size={20} /> Join a game with a code
           </button>
         </div>
       </div>

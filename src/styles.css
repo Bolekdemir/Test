@@ -1600,3 +1600,55 @@ div.voter[data-done='true'] {
     animation: none;
   }
 }
+
+.home__join {
+  margin-top: 8px;
+}
+
+.home__join .btn {
+  min-height: 48px;
+  padding: 0 14px;
+  margin-left: -14px;
+  color: var(--ink-2);
+  font-weight: 550;
+}
+
+.phone__back {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(238, 241, 234, 0.72);
+  font-size: 16px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 4px;
+  margin: 0 0 24px -4px;
+  cursor: pointer;
+}
+
+.phone__heading {
+  font-size: clamp(32px, 9vw, 44px);
+}
+
+.field--code {
+  height: 72px;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  text-align: center;
+  padding-left: calc(22px + 0.4em);
+}
+
+.field--code::placeholder {
+  color: rgba(238, 241, 234, 0.2);
+}
+
+.phone__hint {
+  font-size: 14px;
+  color: rgba(238, 241, 234, 0.55);
+  margin: 8px 6px 0;
+}
