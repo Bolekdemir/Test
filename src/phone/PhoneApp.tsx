@@ -1,4 +1,4 @@
-import { ArrowRight, CircleNotch, Crown, LockSimple, WifiSlash } from '@phosphor-icons/react';
+import { ArrowRight, CaretLeft, CircleNotch, Crown, LockSimple, WifiSlash } from '@phosphor-icons/react';
 import { AnimatePresence, motion, MotionConfig } from 'motion/react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Avatar } from '../components/Avatar';
@@ -54,17 +54,43 @@ const REJECTED: Record<string, string> = {
 };
 
 function JoinForm({ initial, onJoin, error }: { initial: Saved; onJoin: (name: string, room: string) => void; error: string | null }) {
+  const fromLink = roomFromHash();
   const [name, setName] = useState(initial.name);
-  const [room, setRoom] = useState(roomFromHash() || initial.room);
+  const [room, setRoom] = useState(fromLink);
   const ok = name.trim().length > 0 && room.length === 4;
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (ok) onJoin(name.trim(), room);
   };
-  return (
-    <form className="phone__join" onSubmit={submit}>
-      <h1 className="display phone__mark">Mert</h1>
-      <p className="phone__lede">Join the game on the iPad.</p>
+
+  const codeField = (
+    <>
+      <label className="phone__label" htmlFor="room">
+        Room code
+      </label>
+      <input
+        id="room"
+        className="field field--dark field--code num"
+        value={room}
+        placeholder="ABCD"
+        inputMode="text"
+        onChange={(e) => setRoom(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4))}
+        autoCapitalize="characters"
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        enterKeyHint="next"
+        autoFocus={!fromLink}
+        aria-describedby="room-hint"
+      />
+      <span id="room-hint" className="phone__hint">
+        The 4 letters on the iPad screen.
+      </span>
+    </>
+  );
+
+  const nameField = (
+    <>
       <label className="phone__label" htmlFor="name">
         Your name
       </label>
@@ -79,25 +105,28 @@ function JoinForm({ initial, onJoin, error }: { initial: Saved; onJoin: (name: s
         autoCorrect="off"
         spellCheck={false}
         enterKeyHint="go"
-        autoFocus={!initial.name}
+        autoFocus={!!fromLink && !initial.name}
       />
-      <label className="phone__label" htmlFor="room">
-        Room code
-      </label>
-      <input
-        id="room"
-        className="field field--dark num"
-        value={room}
-        onChange={(e) => setRoom(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4))}
-        autoCapitalize="characters"
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck={false}
-        enterKeyHint="go"
-        style={{ letterSpacing: '0.25em', fontWeight: 650 }}
-      />
+    </>
+  );
+
+  return (
+    <form className="phone__join" onSubmit={submit}>
+      <button type="button" className="phone__back" onClick={() => (location.hash = '')}>
+        <CaretLeft size={18} weight="bold" /> Mert
+      </button>
+      <h1 className="title phone__heading">{fromLink ? 'Join the game' : 'Join with a code'}</h1>
+      <p className="phone__lede">
+        {fromLink ? `Room ${fromLink} on the iPad.` : 'Someone starts a game on the iPad with phones on. Type their room code.'}
+      </p>
+      {fromLink ? nameField : (
+        <>
+          {codeField}
+          {nameField}
+        </>
+      )}
       {error && <p className="phone__error">{error}</p>}
-      <button type="submit" className="btn btn--glass btn--lg btn--block" disabled={!ok} style={{ marginTop: 24 }}>
+      <button type="submit" className="btn btn--glass btn--lg btn--block" disabled={!ok} style={{ marginTop: 28 }}>
         Join <ArrowRight size={20} weight="bold" />
       </button>
     </form>
@@ -220,8 +249,9 @@ export default function PhoneApp() {
   const [saved, setSaved] = useState<Saved>(load);
   const [joined, setJoined] = useState(() => {
     const s = load();
+    // Rejoin automatically only when opened from this room's link (a reload or the QR again).
     const hashRoom = roomFromHash();
-    return !!s.name && !!s.room && (!hashRoom || hashRoom === s.room);
+    return !!s.name && !!hashRoom && hashRoom === s.room;
   });
   const [status, setStatus] = useState<ClientStatus>('connecting');
   const [reason, setReason] = useState<string | null>(null);
