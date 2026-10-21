@@ -5,6 +5,10 @@ import { Screen } from './components/Screen';
 import { reducer, type Action } from './game/logic';
 import type { AppState, Phase } from './game/types';
 import { useWakeLock } from './hooks/useWakeLock';
+import { isPhoneGame } from './game/logic';
+import { useRoomHost } from './net/useRoomHost';
+import { Deal } from './screens/Deal';
+import { PhoneVote } from './screens/PhoneVote';
 import { Discuss } from './screens/Discuss';
 import { Home } from './screens/Home';
 import { HowTo } from './screens/HowTo';
@@ -14,9 +18,9 @@ import { LastChance, Over, Verdict } from './screens/Verdict';
 import { Vote } from './screens/Vote';
 import { loadState, saveState } from './storage';
 
-const IN_GAME: Phase[] = ['pass', 'peek', 'discuss', 'vote', 'verdict', 'guess', 'over'];
+const IN_GAME: Phase[] = ['pass', 'peek', 'deal', 'discuss', 'vote', 'verdict', 'guess', 'over'];
 /** Transitions that read as going back, so the screen slides the other way. */
-const BACKWARD = new Set(['setup>home', 'howto>home', 'vote>discuss', 'over>setup', 'pass>setup', 'peek>setup', 'discuss>setup', 'vote>setup', 'verdict>setup', 'guess>setup']);
+const BACKWARD = new Set(['setup>home', 'howto>home', 'vote>discuss', 'over>setup', 'pass>setup', 'peek>setup', 'discuss>setup', 'vote>setup', 'verdict>setup', 'guess>setup', 'deal>setup', 'vote>discuss']);
 
 const LABELS: Record<Phase, string> = {
   home: 'Home',
@@ -24,6 +28,7 @@ const LABELS: Record<Phase, string> = {
   setup: 'New game',
   pass: 'Pass the iPad',
   peek: 'Your secret',
+  deal: 'Check your cards',
   discuss: 'Discussion',
   vote: 'Vote',
   verdict: 'Verdict',
@@ -48,6 +53,7 @@ export function App() {
   useEffect(() => saveState(state), [state]);
 
   const { phase, game, settings } = state;
+  const { online, status: hostStatus } = useRoomHost(state, dispatch);
   useWakeLock(IN_GAME.includes(phase));
 
   useEffect(() => {
@@ -58,7 +64,11 @@ export function App() {
   const resume = useCallback(() => {
     setState((s) => {
       if (!s.game) return s;
-      const phase: Phase = s.game.pendingGuessId ? 'guess' : s.game.winner ? 'over' : s.game.revealIndex < s.game.players.length ? 'pass' : 'discuss';
+      const phase: Phase = s.game.pendingGuessId ? 'guess' : s.game.winner ? 'over' : s.game.revealIndex < s.game.players.length
+            ? isPhoneGame(s.game)
+              ? 'deal'
+              : 'pass'
+            : 'discuss';
       return { ...s, phase };
     });
   }, []);
@@ -69,14 +79,20 @@ export function App() {
   let className = '';
   if (phase === 'home') content = <Home dispatch={dispatch} hasGame={!!game} onResume={resume} />;
   else if (phase === 'howto') content = <HowTo dispatch={dispatch} />;
-  else if (phase === 'setup') content = <Setup settings={settings} dispatch={dispatch} />;
+  else if (phase === 'setup') content = <Setup settings={settings} dispatch={dispatch} online={online} hostStatus={hostStatus} />;
   else if (game) {
     if (phase === 'pass') content = <Pass game={game} dispatch={dispatch} onEnd={endGame} />;
     else if (phase === 'peek') {
       className = 'peek';
       content = <Peek game={game} dispatch={dispatch} onEnd={endGame} />;
     } else if (phase === 'discuss') content = <Discuss game={game} dispatch={dispatch} onEnd={endGame} />;
-    else if (phase === 'vote') content = <Vote game={game} dispatch={dispatch} />;
+    else if (phase === 'deal') content = <Deal game={game} dispatch={dispatch} onEnd={endGame} online={online} />;
+    else if (phase === 'vote')
+      content = isPhoneGame(game) ? (
+        <PhoneVote game={game} dispatch={dispatch} online={online} />
+      ) : (
+        <Vote game={game} dispatch={dispatch} />
+      );
     else if (phase === 'verdict') content = <Verdict game={game} dispatch={dispatch} setFlood={setFlood} />;
     else if (phase === 'guess') content = <LastChance game={game} dispatch={dispatch} />;
     else if (phase === 'over') content = <Over game={game} dispatch={dispatch} setFlood={setFlood} />;

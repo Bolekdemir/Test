@@ -25,6 +25,8 @@ Everyone is in the same room. The iPad is the table: setup, timer, turn order, r
 
 ## Milestones
 
+Status: milestones 0 to 5 shipped together (secret ballots, ties, reconnects and mixed mode included).
+
 | # | Milestone | Done when |
 |---|---|---|
 | 0 | Connection test at `#/connect` | An iPad and a phone connect on Mav's real network and buzz each other |

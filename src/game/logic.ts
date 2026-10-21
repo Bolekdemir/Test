@@ -99,6 +99,16 @@ export function checkWinner(players: GamePlayer[]): Role | null {
   return null;
 }
 
+/** A game where at least one player joined from a phone. */
+export function isPhoneGame(game: Game): boolean {
+  return game.players.some((p) => p.deviceId);
+}
+
+export function makeRoomCode(rng: Rng = Math.random): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  return Array.from({ length: 4 }, () => alphabet[Math.floor(rng() * alphabet.length)]).join('');
+}
+
 export function createGame(
   settings: Settings,
   used: Record<string, string[]>,
@@ -144,7 +154,14 @@ export type Action =
   | { type: 'lastGuess'; correct: boolean; now: number }
   | { type: 'continue'; now: number }
   | { type: 'playAgain'; now: number }
-  | { type: 'endGame' };
+  | { type: 'endGame' }
+  | { type: 'setPhones'; on: boolean; room?: string }
+  | { type: 'joinPlayer'; id: string; deviceId: string; name: string }
+  | { type: 'peeked'; playerId: string }
+  | { type: 'peekOnIpad'; playerId: string }
+  | { type: 'startDiscussion'; now: number }
+  | { type: 'castVote'; voterId: string; targetId: string }
+  | { type: 'closeVoting' };
 
 export function cleanName(name: string): string {
   return name.replace(/\s+/g, ' ').trim().slice(0, MAX_NAME_LENGTH);
@@ -160,6 +177,50 @@ function nextRound(state: AppState, game: Game, now: number, rng: Rng): AppState
       starterId: pickStarter(game.players, rng),
       timer: newTimer(state.settings.timerSec, now),
     },
+  };
+}
+
+function eject(state: AppState, game: Game, id: string): AppState {
+  const target = game.players.find((p) => p.id === id && p.alive);
+  if (!target) return state;
+  const players = game.players.map((p) => (p.id === id ? { ...p, alive: false } : p));
+  return {
+    ...state,
+    phase: 'verdict',
+    game: {
+      ...game,
+      players,
+      ballots: {},
+      lastEjectedId: id,
+      pendingGuessId: target.role === 'imposter' ? target.id : null,
+      winner: checkWinner(players),
+    },
+  };
+}
+
+/**
+ * Counts secret ballots once everyone alive has voted (or the host closes voting).
+ * One clear leader is voted out. A first tie triggers a revote between the tied
+ * players; a second tie means nobody goes out this round.
+ */
+function resolveBallots(state: AppState, game: Game, force: boolean): AppState {
+  const ballots = game.ballots ?? {};
+  const voters = game.players.filter((p) => p.alive);
+  const allIn = voters.every((v) => ballots[v.id]);
+  if (!allIn && !force) return { ...state, game };
+  const counts = new Map<string, number>();
+  for (const target of Object.values(ballots)) counts.set(target, (counts.get(target) ?? 0) + 1);
+  if (counts.size === 0) return { ...state, game };
+  const max = Math.max(...counts.values());
+  const top = [...counts.entries()].filter(([, n]) => n === max).map(([id]) => id);
+  if (top.length === 1) return eject(state, game, top[0]);
+  if (!game.revote) {
+    return { ...state, phase: 'vote', game: { ...game, ballots: {}, candidates: top, revote: true } };
+  }
+  return {
+    ...state,
+    phase: 'verdict',
+    game: { ...game, ballots: {}, lastEjectedId: null, pendingGuessId: null },
   };
 }
 
@@ -223,7 +284,13 @@ export function reducer(state: AppState, action: Action, rng: Rng = Math.random)
     case 'playAgain': {
       if (!canStart(settings)) return state;
       const created = createGame(settings, state.used, rng);
-      return { ...state, phase: 'pass', game: created.game, used: created.used };
+      const phone = isPhoneGame(created.game);
+      return {
+        ...state,
+        phase: phone ? 'deal' : 'pass',
+        game: phone ? { ...created.game, peeked: [] } : created.game,
+        used: created.used,
+      };
     }
 
     case 'ready':
@@ -231,6 +298,11 @@ export function reducer(state: AppState, action: Action, rng: Rng = Math.random)
 
     case 'donePeeking': {
       if (!game || state.phase !== 'peek') return state;
+      if (isPhoneGame(game)) {
+        const id = game.players[game.revealIndex].id;
+        const peeked = [...new Set([...(game.peeked ?? []), id])];
+        return { ...state, phase: 'deal', game: { ...game, peeked } };
+      }
       const next = game.revealIndex + 1;
       if (next < game.players.length) {
         return { ...state, phase: 'pass', game: { ...game, revealIndex: next } };
@@ -254,29 +326,80 @@ export function reducer(state: AppState, action: Action, rng: Rng = Math.random)
       return { ...state, game: { ...game, timer: { ...game.timer, endsAt } } };
     }
 
-    case 'openVote':
-      return game && state.phase === 'discuss' ? { ...state, phase: 'vote' } : state;
+    case 'openVote': {
+      if (!game || state.phase !== 'discuss') return state;
+      if (!isPhoneGame(game)) return { ...state, phase: 'vote' };
+      const candidates = game.players.filter((p) => p.alive).map((p) => p.id);
+      return { ...state, phase: 'vote', game: { ...game, ballots: {}, candidates, revote: false } };
+    }
 
     case 'backToDiscuss':
-      return game && state.phase === 'vote' ? { ...state, phase: 'discuss' } : state;
+      return game && state.phase === 'vote'
+        ? { ...state, phase: 'discuss', game: { ...game, ballots: {}, revote: false } }
+        : state;
 
-    case 'vote': {
-      if (!game || state.phase !== 'vote') return state;
-      const target = game.players.find((p) => p.id === action.id && p.alive);
-      if (!target) return state;
-      const players = game.players.map((p) => (p.id === action.id ? { ...p, alive: false } : p));
+    case 'vote':
+      if (!game || state.phase !== 'vote' || isPhoneGame(game)) return state;
+      return eject(state, game, action.id);
+
+    case 'castVote': {
+      if (!game || state.phase !== 'vote' || !isPhoneGame(game)) return state;
+      const voter = game.players.find((p) => p.id === action.voterId && p.alive);
+      const valid = (game.candidates ?? []).includes(action.targetId) && action.targetId !== action.voterId;
+      if (!voter || !valid) return state;
+      const ballots = { ...(game.ballots ?? {}), [voter.id]: action.targetId };
+      return resolveBallots(state, { ...game, ballots }, false);
+    }
+
+    case 'closeVoting':
+      if (!game || state.phase !== 'vote' || !isPhoneGame(game)) return state;
+      return resolveBallots(state, game, true);
+
+    case 'setPhones':
       return {
         ...state,
-        phase: 'verdict',
-        game: {
-          ...game,
-          players,
-          lastEjectedId: action.id,
-          pendingGuessId: target.role === 'imposter' ? target.id : null,
-          winner: checkWinner(players),
+        settings: {
+          ...settings,
+          // Turning phones off keeps everyone, as plain one-iPad players.
+          players: action.on ? settings.players : settings.players.map(({ deviceId: _drop, ...p }) => p),
+          phones: action.on,
+          room: action.on ? (settings.room ?? action.room ?? makeRoomCode(rng)) : settings.room,
         },
       };
+
+    case 'joinPlayer': {
+      const known = settings.players.find((p) => p.deviceId === action.deviceId);
+      const name = cleanName(action.name);
+      if (known) {
+        if (!name || name === known.name || game) return state;
+        const players = settings.players.map((p) => (p.deviceId === action.deviceId ? { ...p, name } : p));
+        return { ...state, settings: { ...settings, players } };
+      }
+      if (game || !settings.phones || !name || settings.players.length >= MAX_PLAYERS) return state;
+      const players = [...settings.players, { id: action.id, name, deviceId: action.deviceId }];
+      return { ...state, settings: { ...settings, players } };
     }
+
+    case 'peeked': {
+      if (!game || !game.players.some((p) => p.id === action.playerId)) return state;
+      if ((game.peeked ?? []).includes(action.playerId)) return state;
+      return { ...state, game: { ...game, peeked: [...(game.peeked ?? []), action.playerId] } };
+    }
+
+    case 'peekOnIpad': {
+      if (!game || state.phase !== 'deal') return state;
+      const index = game.players.findIndex((p) => p.id === action.playerId);
+      if (index < 0) return state;
+      return { ...state, phase: 'pass', game: { ...game, revealIndex: index } };
+    }
+
+    case 'startDiscussion':
+      if (!game || state.phase !== 'deal') return state;
+      return {
+        ...state,
+        phase: 'discuss',
+        game: { ...game, revealIndex: game.players.length, timer: newTimer(settings.timerSec, action.now) },
+      };
 
     case 'continue': {
       if (!game || state.phase !== 'verdict') return state;
