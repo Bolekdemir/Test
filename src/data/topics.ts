@@ -287,6 +287,14 @@ export const TOPICS: Topic[] = [
       'Never have I ever', 'Red light green light',
     ],
   },
+  {
+    id: 'din',
+    name: 'Din',
+    words: [
+      'Kader', 'Tevekkül', 'Teslimiyet', 'Kaza', 'Sünnetullah', 'Rezzak', 'Ecel', 'Hidayet',
+      'Delalet', 'Mükellef', 'Rıza', 'Külli irade', 'Cüzi irade',
+    ],
+  },
 ];
 
 export const TOPIC_BY_ID: Record<string, Topic> = Object.fromEntries(

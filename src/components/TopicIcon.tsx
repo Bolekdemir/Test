@@ -1,5 +1,5 @@
 import {
-  Armchair, Bank, Brain, Briefcase, Car, Confetti, DeviceMobile, FilmSlate, GameController,
+  Armchair, Bank, BookOpen, Brain, Briefcase, Car, Confetti, DeviceMobile, FilmSlate, GameController,
   GlobeHemisphereWest, GraduationCap, Guitar, Hamburger, Leaf, Lightning, MagicWand, MapPin,
   MusicNotes, PawPrint, PuzzlePiece, ShoppingBag, SoccerBall, SquaresFour, TShirt, Television,
   Trophy, VideoCamera, type Icon,
@@ -33,6 +33,7 @@ const ICONS: Record<string, Icon> = {
   holidays: Confetti,
   fantasy: MagicWand,
   board: PuzzlePiece,
+  din: BookOpen,
 };
 
 export function TopicIcon({ id, size = 26 }: { id: string; size?: number }) {
